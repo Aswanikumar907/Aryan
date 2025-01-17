@@ -1,45 +1,76 @@
-name: Windows Workflow
+name: Windows Build
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: windows-latest
 
     steps:
-      # Check out the repository code
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      # Set up PowerShell Core (optional, Windows PowerShell is pre-installed)
-      - name: Set up PowerShell Core
-        uses: actions/setup-pwsh@v2
+      # Optional: Setup MSVC if you need it (e.g., for C/C++ projects)
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64 # or x86, arm64 as needed
 
-      # Run a PowerShell script
-      - name: Run PowerShell Script
+      # Example: Install Python if you need it
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9' # or your desired version
+
+      # Example: Install Node.js if you need it
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      # Example: Install .NET if you need it
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0.x' # or your desired version
+
+      # Example: Install Chocolatey and use it to install other tools
+      - name: Install Chocolatey
         run: |
-          Write-Output "Running a script on Windows"
-          # Example: Check .NET version
-          dotnet --version
-          # Example: List files in the current directory
-          Get-ChildItem -Path .
+          Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+      - name: Install other tools with Chocolatey (Example: 7zip)
+        run: choco install 7zip --yes
 
-      # Install dependencies (example for Chocolatey)
-      - name: Install dependencies with Chocolatey
-        run: |
-          Set-ExecutionPolicy Bypass -Scope Process -Force
-          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-          choco install git -y
+      # Example: Build a Visual Studio solution
+      - name: Build Solution
+        if: matrix.config.sln_file != ''
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
+      - name: Build
+        if: matrix.config.sln_file != ''
+        run: msbuild ${{ matrix.config.sln_file }} /p:Configuration=Release /p:Platform=x64
 
-      # Example: Run tests
-      - name: Run Tests
+      # Example: Run tests (adjust the command as needed)
+      - name: Run tests
         run: |
-          # Placeholder for running tests
-          Write-Output "Running tests..."
+          # Example for Python:
+          # python -m unittest discover
+          # Example for .NET:
+          # dotnet test
+
+      # Example: Create an artifact (e.g., a zip file)
+      - name: Create Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: |
+            # Paths to the files or folders you want to include in the artifact.
+            # Example:
+            # path/to/your/executable.exe
+            # path/to/your/dll.dll
+            # Or a wildcard:
+            # build/Release/*.exe
+            # build/Release/*.dll
+            # Or a folder
+            # build/Release
