@@ -1,0 +1,45 @@
+name: Windows Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      # Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up PowerShell Core (optional, Windows PowerShell is pre-installed)
+      - name: Set up PowerShell Core
+        uses: actions/setup-pwsh@v2
+
+      # Run a PowerShell script
+      - name: Run PowerShell Script
+        run: |
+          Write-Output "Running a script on Windows"
+          # Example: Check .NET version
+          dotnet --version
+          # Example: List files in the current directory
+          Get-ChildItem -Path .
+
+      # Install dependencies (example for Chocolatey)
+      - name: Install dependencies with Chocolatey
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          choco install git -y
+
+      # Example: Run tests
+      - name: Run Tests
+        run: |
+          # Placeholder for running tests
+          Write-Output "Running tests..."
